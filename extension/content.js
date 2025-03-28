@@ -1,10 +1,12 @@
 // Global state
 let isEnabled = true;
+let deleteMode = true;
 let blockedCount = 0;
 
 // Load initial state
-chrome.storage.local.get(["isEnabled", "blockedCount"], (result) => {
+chrome.storage.local.get(["isEnabled", "deleteMode", "blockedCount"], (result) => {
   isEnabled = result.isEnabled !== false;
+  deleteMode = result.deleteMode !== false;
   blockedCount = result.blockedCount || 0;
 });
 
@@ -12,9 +14,64 @@ chrome.storage.local.get(["isEnabled", "blockedCount"], (result) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "toggleBlocking") {
     isEnabled = message.isEnabled;
-    console.log(`Blocking toggled: isEnabled = ${isEnabled}`);
+    deleteMode = message.deleteMode;
+    console.log(`Blocking toggled: isEnabled = ${isEnabled}, deleteMode = ${deleteMode}`);
+  } else if (message.action === "toggleDeleteMode") {
+    deleteMode = message.deleteMode;
+    console.log(`Delete mode toggled: deleteMode = ${deleteMode}`);
   }
 });
+
+// CSS for blur overlay
+const blurStyle = `
+  .ghibli-blur-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+  }
+  .ghibli-blur-text {
+    color: white;
+    font-size: 14px;
+    text-align: center;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 5px;
+  }
+`;
+
+// Add blur styles to document
+const styleSheet = document.createElement("style");
+styleSheet.textContent = blurStyle;
+document.head.appendChild(styleSheet);
+
+// Function to create blur overlay
+function createBlurOverlay(tweet) {
+  const overlay = document.createElement("div");
+  overlay.className = "ghibli-blur-overlay";
+
+  const text = document.createElement("div");
+  text.className = "ghibli-blur-text";
+  text.textContent = "Ghibli content detected (click to reveal)";
+
+  overlay.appendChild(text);
+
+  // Add click handler to remove overlay
+  overlay.addEventListener("click", () => {
+    overlay.remove();
+  });
+
+  return overlay;
+}
 
 // Function to check if an image is Ghibli
 async function isGhibliImage(imageUrl) {
@@ -127,12 +184,22 @@ async function processTweet(tweet) {
         console.log("Found tweet container:", tweetContainer);
 
         if (tweetContainer) {
-          tweetContainer.remove();
+          if (deleteMode) {
+            tweetContainer.remove();
+          } else {
+            // Make sure container is relatively positioned for overlay
+            tweetContainer.style.position = "relative";
+            tweetContainer.appendChild(createBlurOverlay(tweetContainer));
+          }
           blockedCount++;
-          console.log(`Removed Ghibli tweet. Total blocked: ${blockedCount}`);
+          console.log(
+            `Handled Ghibli tweet (${
+              deleteMode ? "deleted" : "blurred"
+            }). Total blocked: ${blockedCount}`
+          );
           chrome.storage.local.set({ blockedCount });
         } else {
-          console.log("Could not find tweet container to remove");
+          console.log("Could not find tweet container to handle");
         }
         break;
       }
