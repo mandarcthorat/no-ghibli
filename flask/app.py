@@ -81,8 +81,6 @@ def load_and_preprocess_image(img):
             img = img.convert("RGB")
         # Convert to numpy array
         img_array = np.array(img)
-        # Normalize pixel values
-        img_array = img_array / 255.0
         # Add batch dimension
         img_array = np.expand_dims(img_array, axis=0)
         return img_array
@@ -145,16 +143,13 @@ def predict():
 
         # Make prediction
         prediction = model.predict(processed_image)
-        predicted_class = "Ghibli" if prediction[0][0] > 0.5 else "Not Ghibli"
+        predicted_class = "Ghibli" if prediction[0][0] < 0.5 else "Not Ghibli"
 
         app.logger.info(f"Prediction made: {predicted_class}")
 
         return jsonify(
             {
                 "predicted_class": predicted_class,
-                "confidence": float(
-                    abs(0.5 - prediction[0][0]) * 2
-                ),  # Scale to 0-1 confidence
                 "raw_prediction": float(prediction[0][0]),
             }
         )
