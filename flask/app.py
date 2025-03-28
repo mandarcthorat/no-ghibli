@@ -58,9 +58,17 @@ def setup_logging():
 
 def load_model():
     global model
-    # Replace this with your actual model path
-    model = tf.keras.models.load_model("model.keras")
-    pass
+    try:
+        # Get the directory where the app.py file is located
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        model_path = os.path.join(base_dir, "model.keras")
+
+        app.logger.info(f"Attempting to load model from: {model_path}")
+        model = tf.keras.models.load_model(model_path)
+        app.logger.info("Model loaded successfully")
+    except Exception as e:
+        app.logger.error(f"Failed to load model: {str(e)}")
+        model = None
 
 
 def load_and_preprocess_image(img):
@@ -82,6 +90,10 @@ def load_and_preprocess_image(img):
         app.logger.error(f"Error processing image: {str(e)}")
         return None
 
+@app.route("/", methods=["GET"])
+def index():
+    load_model()
+    return jsonify({"message": "Hello, World!"}), 200
 
 @app.route("/health", methods=["GET"])
 def health_check():
