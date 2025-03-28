@@ -6,6 +6,7 @@ A Chrome extension that helps you identify and filter out Studio Ghibli-related 
 
 - Download the `extension` directory from the [release page](https://github.com/faisalsayed10/no-ghibli/releases)
 - Go to `chrome://extensions/`
+- Enable "Developer mode" in the top right corner
 - Click "Load unpacked" and select the `extension` directory
 
 ## Project Structure
