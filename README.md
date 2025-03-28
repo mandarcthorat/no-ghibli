@@ -2,6 +2,12 @@
 
 A Chrome extension that helps you identify and filter out Studio Ghibli-related content from Twitter. This project consists of a Flask backend service that performs image classification and a Chrome extension that integrates with it.
 
+## Simplest Setup
+
+- Download the `extension` directory from the [release page](https://github.com/faisalsayed10/no-ghibli/releases)
+- Go to `chrome://extensions/`
+- Click "Load unpacked" and select the `extension` directory
+
 ## Project Structure
 
 ```
