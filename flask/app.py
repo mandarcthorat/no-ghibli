@@ -133,7 +133,7 @@ def predict():
 
         # Make prediction
         prediction = model.predict(processed_image)
-        predicted_class = "Ghibli" if prediction[0][0] < 0.5 else "Not Ghibli"
+        predicted_class = "Ghibli" if prediction[0][0] > 0.5 else "Not Ghibli"
 
         app.logger.info(f"Prediction made: {predicted_class}")
 
@@ -152,18 +152,8 @@ def predict():
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 
-# Initialize app
-@app.before_first_request
-def initialize():
-    """Initialize the application before the first request"""
-    app.logger.info("Initializing application")
+if __name__ == "__main__":
     setup_logging()
-    if not load_model():
-        app.logger.error("Application initialization failed")
-    else:
-        app.logger.info("Application initialized successfully")
-
-
-# if __name__ == "__main__":
-#     load_model()  # Load the model before starting the server
-#     app.run(debug=True, host="0.0.0.0", port=10000)
+    load_model()
+    app.logger.info("Application initialized successfully")
+    app.run()
