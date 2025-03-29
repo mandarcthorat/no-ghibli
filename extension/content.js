@@ -73,6 +73,13 @@ function createBlurOverlay(tweet) {
   return overlay;
 }
 
+function createBlurCover() {
+  const overlay = document.createElement("div");
+  overlay.className = "ghibli-blur-overlay";
+
+  return overlay;
+}
+
 // Function to check if an image is Ghibli
 async function isGhibliImage(imageUrl) {
   console.log(`Checking image: ${imageUrl}`);
@@ -175,17 +182,40 @@ async function processTweet(tweet) {
     }
 
     // Process each image URL
-    for (const url of uniqueUrls) {
-      const isGhibli = await isGhibliImage(url);
-      console.log(`Image Ghibli detection result: ${isGhibli}`);
+    const ghibliResults = await Promise.all(
+      uniqueUrls.map(async (url) => {
+        const isGhibli = await isGhibliImage(url);
+        console.log(`Image Ghibli detection result: ${isGhibli}`);
+        return { url, isGhibli };
+      })
+    );
 
+    for (const { url, isGhibli } of ghibliResults) {
       if (isGhibli) {
         const tweetContainer = tweet.closest("article");
         console.log("Found tweet container:", tweetContainer);
 
         if (tweetContainer) {
           if (deleteMode) {
-            tweetContainer.remove();
+            tweetContainer.appendChild(createBlurCover());
+
+            const originalHeight = tweetContainer.offsetHeight + "px";
+            tweetContainer.style.overflow = "hidden";
+            tweetContainer.style.transition = "all 0.3s ease-in-out";
+
+            // Set initial height explicitly before animating to 0
+            tweetContainer.style.height = originalHeight;
+            // Use requestAnimationFrame to ensure the initial height is set
+            requestAnimationFrame(() => {
+              tweetContainer.style.height = "0px";
+              tweetContainer.style.opacity = "0";
+              tweetContainer.style.margin = "0";
+              tweetContainer.style.padding = "0";
+            });
+
+            setTimeout(() => {
+              tweetContainer.remove();
+            }, 300);
           } else {
             // Make sure container is relatively positioned for overlay
             tweetContainer.style.position = "relative";
@@ -210,20 +240,20 @@ async function processTweet(tweet) {
 }
 
 // Create an observer to watch for new tweets
-const observer = new MutationObserver((mutations) => {
+const observer = new MutationObserver(async (mutations) => {
   if (!isEnabled) {
     console.log("Observer triggered but blocking is disabled");
     return;
   }
 
-  for (const mutation of mutations) {
-    for (const node of mutation.addedNodes) {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const tweets = node.querySelectorAll("article");
-        tweets.forEach(processTweet);
-      }
-    }
-  }
+  const promises = mutations.flatMap((mutation) =>
+    Array.from(mutation.addedNodes)
+      .filter((node) => node.nodeType === Node.ELEMENT_NODE)
+      .flatMap((node) => Array.from(node.querySelectorAll("article")))
+      .map((tweet) => processTweet(tweet))
+  );
+
+  await Promise.all(promises);
 });
 
 // Start observing the timeline
